@@ -7,7 +7,7 @@ temp1 = temp.loadModel(path = "D:\\Gbxml\\ConferenceRoomStudy.xml")
 if temp1.is_initialized():
     model = temp1.get()
 
-# Convert it to osm
+# Convert it to osm hello
 #model.save("D:\\Code_output\\Gbxml_to_osmoutput.osm", True)
 #model1 = os.model.Model.load("D:\\Code_output\\Gbxml_to_osmoutput.osm").get()
 #print(type(model1))
