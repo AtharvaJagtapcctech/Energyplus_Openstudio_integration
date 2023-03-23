@@ -62,6 +62,45 @@ designDay.setBarometricPressure(101325)
 #designDay.addToWorkspace()
 print(designDay)
 
+thermal_zones = model.getThermalZones()
+print("Thermal Zones are: ")
+for thermal_zone in thermal_zones:
+    zone_name = thermal_zone.name().get()
+    print(zone_name)
+
+#get all surface details
+surfaces = model.getSurfaces()
+print("Surfaces are ")
+for surface in surfaces:
+    surface_name = surface.name().get()
+    print("Surface name:",surface_name)
+
+    surface_type = surface.surfaceType()
+    print("Surface type:", surface_type)
+       
+    construction_1 = surface.construction().get()
+    new = surface_type
+    construction_1.setName(new)
+    construction_name = construction_1.name().get()
+    print("Construction Name:",construction_name)
+   
+    subsurfaces = surface.subSurfaces()
+    for subsurface in subsurfaces:
+        subsurface_name = subsurface.name().get()
+        surface_type_2 = subsurface.subSurfaceType()
+        construction_2 = subsurface.construction().get()
+        new2= surface_type_2
+        construction_2.setName(new2)
+        construction_2_name = subsurface.construction().get().name().get()
+        print( construction_2_name,"\n")
+
+    newname = f"{surface_name} - {surface_type}"
+    surface.setName(newname)
+print("New Surfaces are ")
+for surface in surfaces:
+    surface_name = surface.name().get()
+    print("Surface name:",surface_name)
+
 #add schedule set
 default_schedule_set = os.model.DefaultScheduleSet(model)
 
@@ -71,6 +110,11 @@ schedule_limits.setName("Fractional")
 #schedule_limits.setUnitType("Dimensionless")
 schedule_limits.setLowerLimitValue(0.0)
 schedule_limits.setUpperLimitValue(1.0)
+schedule_limits2 = os.model.ScheduleTypeLimits(model)
+schedule_limits2.setName("Temperature")
+schedule_limits2.setUnitType("Temperature")
+schedule_limits2.setLowerLimitValue(0.00)
+schedule_limits2.setUpperLimitValue(23.50)
 
 #add schedule to ruleset
 schedule = os.model.ScheduleRuleset(model)
@@ -79,7 +123,7 @@ schedule.setScheduleTypeLimits(schedule_limits)
  
 schedule1 = os.model.ScheduleRuleset(model)
 schedule1.setName("New Schedule 2")
-schedule1.setScheduleTypeLimits(schedule_limits)
+schedule1.setScheduleTypeLimits(schedule_limits2)
 
 # Add ScheduleDay to ScheduleRuleset
 schedule_day = os.model.ScheduleDay(model)
@@ -115,35 +159,105 @@ lightsDefinition.setLightingLevel(210)
 #add default Constructionset
 construction_set = os.model.DefaultConstructionSet(model)
 construction_set.setName('My Construction Set')
+construction23 = model.getConstructionByName("Wall")
+construction24 = model.getConstructionByName("Floor")
+construction25 = model.getConstructionByName("RoofCeiling")
+construction26 = model.getConstructionByName("OperableWindow")
+construction27 = model.getConstructionByName("Door")
+temp1 = os.model.DefaultSurfaceConstructions(model)
+temp1.setWallConstruction(construction23.get())
+temp1.setFloorConstruction(construction24.get())
+temp1.setRoofCeilingConstruction(construction25.get())
+construction_set.setDefaultExteriorSurfaceConstructions(temp1)
+construction_set.setDefaultInteriorSurfaceConstructions(temp1)
+construction_set.setDefaultGroundContactSurfaceConstructions(temp1)
+temp2 = os.model.DefaultSubSurfaceConstructions(model)
+temp2.setFixedWindowConstruction(construction26.get())
+temp2.setOperableWindowConstruction(construction26.get())
+temp2.setDoorConstruction(construction27.get())
+construction_set.setDefaultExteriorSubSurfaceConstructions(temp2)
+construction_set.setDefaultInteriorSubSurfaceConstructions(temp2)
 
-#get thermal zones
-thermal_zones = model.getThermalZones()
-print("Thermal Zones are: ")
-for thermal_zone in thermal_zones:
-    zone_name = thermal_zone.name().get()
-    print(zone_name)
+#add space type details
+space_type = os.model.SpaceType(model)
+space_type.setName("Conference_space")
+space_type.setDefaultConstructionSet(construction_set)
+space_type.setDefaultScheduleSet(default_schedule_set)
+dsoa = os.model.DesignSpecificationOutdoorAir(model)
+dsoa.setName("MyDesignSpecificationOutdoorAir")
+ventilation_rate = 0.2 # m^3/s per m^2
+dsoa.setOutdoorAirFlowperFloorArea(ventilation_rate)
+space_type.setDesignSpecificationOutdoorAir(dsoa)
 
-#get all surface details
-surfaces = model.getSurfaces()
-print("Surfaces are ")
-for surface in surfaces:
-    surface_name = surface.name().get()
-    print("Surface name:",surface_name)
-       
-    construction = surface.construction().get()
-    construction_name = construction.name().get()
-    print("Construction Name:",construction_name)
-       
-    surface_type = surface.surfaceType()
-    print("Surface type:", surface_type,"\n")
+#Adding facility
+building = model.getBuilding()
+building.setName("MyBuilding")
+floor_to_floor_height = 3.0 # meters
+building.setNominalFloortoFloorHeight(floor_to_floor_height)
+north_axis=20.0
+building.setNorthAxis(north_axis)
+story = model.getBuildingStoryByName("aim0015").get()
+story.setNominalZCoordinate(22)
+story.setNominalFloortoCeilingHeight(3)
+story.setNominalFloortoFloorHeight(3)
 
-    newname = f"{surface_name} - {surface_type}"
-    surface.setName(newname)
+# Set the SpaceType for the Space
+space_name=model.getSpaceByName("aim0030").get()
+space_name.setSpaceType(space_type)
+space_name.setBuildingStory(story)
+space_name.setDefaultConstructionSet(construction_set)
+space_name.setDefaultScheduleSet(default_schedule_set)
+thermal_zoned = model.getThermalZoneByName("aim0024")
+if thermal_zoned.is_initialized():
+    thermal_zoness = thermal_zoned.get() 
+    space_name.setThermalZone(thermal_zoness)
+else:
+    print("Thermal zone not found.")
 
-print("New Surfaces are ")
-for surface in surfaces:
-    surface_name = surface.name().get()
-    print("Surface name:",surface_name)
+#SetThermalzone
+thermal_zone = model.getThermalZoneByName("aim0024").get()
+thermostat = os.model.ThermostatSetpointDualSetpoint(model)
+thermostat.setName("My Thermostat")
+thermostat.setCoolingSetpointTemperatureSchedule(schedule1)
+thermostat.setHeatingSetpointTemperatureSchedule(schedule1)
+thermal_zone.setThermostatSetpointDualSetpoint(thermostat)
+
+#Set Simulationsettings
+runPeriod = os.model.getRunPeriod(model)
+runPeriod.setBeginMonth(1)
+runPeriod.setBeginDayOfMonth(1)
+runPeriod.setEndMonth(12)
+runPeriod.setEndDayOfMonth(31)
+sizingParameters = os.model.getSizingParameters(model)
+sizingParameters.setHeatingSizingFactor(1.25)
+sizingParameters.setCoolingSizingFactor(1.15)
+timestep = os.model.getTimestep(model)
+timestep.setNumberOfTimestepsPerHour(60)
+simulationControl = os.model.getSimulationControl(model)
+simulationControl.setRunSimulationforSizingPeriods(True)
+simulationControl.setRunSimulationforWeatherFileRunPeriods(True)
+simulationControl.setMaximumNumberofWarmupDays(25)
+simulationControl.setMinimumNumberofWarmupDays(1)
+simulationControl.setTemperatureConvergenceToleranceValue(0.4)
+simulationControl.setLoadsConvergenceToleranceValue(0.04)
+simulationControl.setSolarDistribution("MinimalShadowing")
+simulationControl.setMaximumNumberofHVACSizingSimulationPasses(1)
+shadowCalculation = os.model.getShadowCalculation(model)
+shadowCalculation.setShadingCalculationUpdateFrequency(20)
+shadowCalculation.setMaximumFiguresInShadowOverlapCalculations(1500)
+shadowCalculation.setPolygonClippingAlgorithm("SutherlandHodgman")
+shadowCalculation.setSkyDiffuseModelingAlgorithm("SimpleSkyDiffuseModeling")
+insideSurfaceConvectionAlgorithm = os.model.getInsideSurfaceConvectionAlgorithm(model)
+insideSurfaceConvectionAlgorithm.setAlgorithm("AdaptiveConvectionAlgorithm")
+outsideSurfaceConvectionAlgorithm = os.model.getOutsideSurfaceConvectionAlgorithm(model)
+outsideSurfaceConvectionAlgorithm.setAlgorithm("AdaptiveConvectionAlgorithm")
+heatBalanceAlgorithm = os.model.getHeatBalanceAlgorithm(model)
+heatBalanceAlgorithm.setAlgorithm("ConductionTransferFunction")
+heatBalanceAlgorithm.setSurfaceTemperatureUpperLimit(200)
+heatBalanceAlgorithm.setMinimumSurfaceConvectionHeatTransferCoefficientValue(0.1)
+heatBalanceAlgorithm.setMaximumSurfaceConvectionHeatTransferCoefficientValue(1000)
+zoneAirHeatBalanceAlgorithm = os.model.getZoneAirHeatBalanceAlgorithm(model)
+zoneAirHeatBalanceAlgorithm.setAlgorithm("ThirdOrderBackwardDifference")
 
 model.save("D:\\Code_output\\Final_output.osm", True)
 # translator = os.energyplus.ForwardTranslator()
