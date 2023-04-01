@@ -283,7 +283,11 @@ heatBalanceAlgorithm.setMaximumSurfaceConvectionHeatTransferCoefficientValue(100
 zoneAirHeatBalanceAlgorithm = os.model.getZoneAirHeatBalanceAlgorithm(model)
 zoneAirHeatBalanceAlgorithm.setAlgorithm("ThirdOrderBackwardDifference")
 
+#model.runSimulationforSizingPeriods()
+#workflow=os.
 model.save("D:\\Code_output\\Final_output.osm", True)
 translator = os.energyplus.ForwardTranslator()
 idf = translator.translateModel(model)
 idf.save("D:\\Code_output\\IDF_output.idf", True)
+
+
